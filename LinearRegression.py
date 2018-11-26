@@ -4,16 +4,20 @@ import math
 
 global coefficients
 global learningRate
-X = [lambda x : 1, lambda x : x, lambda x : x ** 2, lambda x : x ** 3]
+X = [lambda x : 1, lambda x : x]
 coefficients =  [0] * len(X)
-learningRate = 0.000005
+learningRate = 0.0005
+
 
 def f(variable):
+    print("var")
+    print(variable)
     global coefficients
     sum = 0
     for i in range(0, len(X)):
         sum += X[i](variable) * coefficients[i]
     return sum
+
 
 def nextCoefficients():
     global coefficients
@@ -25,6 +29,7 @@ def nextCoefficients():
             gradient += (data[1][j] - f(data[0][j]))
         gradient = gradient * -2 * data[0][i]
         coefficients[i] = coefficients[i] - learningRate * gradient
+
 
 def getData(filename, separator):
     '''
@@ -73,14 +78,14 @@ count = 1
 prevLoss = 1000000000000
 
 while True:
-    print(squaredLoss(data))
+    #print(squaredLoss(data))
     nextCoefficients()
 
-    if (prevLoss - squaredLoss(data))**2 < 10:
+    if (prevLoss - squaredLoss(data))**2 < 0.00000001:
         break
     prevLoss = squaredLoss(data)
 
-    print(count)
+    #print(count)
     count += 1
 
 print(squaredLoss(data))
