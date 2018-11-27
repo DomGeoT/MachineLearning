@@ -1,32 +1,102 @@
-import numpy
 import matplotlib.pyplot as plt
 import math
+import random
+import copy
+import numpy
 
-global theta
-global numClasses
-global numAttributes
 
-numClasses = 2
-numAttributes = 2
+def build2dList(innerSize, outSize):
+    l = []
+    for i in range(outSize):
+        inner = []
+        for j in range(innerSize):
+            inner.append(0)
+        l.append(inner)
+    return l
 
-def classifier(X):
-    global theta
+
+def classify(classes, theta, data):
     '''
-    :param X: data
-    :param pheta:
-    :return: p(y = 1 | X, pheta)
+    :param classes: list of classes from 0, 1, 2 ... k
+    :param theta: array of k M dimensional vectors
+    :param data: M dimensional vector of data to classify
+    :return: array of tuples (class, prob of being in that class given the model)
     '''
-    x = [1]
-    x.extend(X)
-    return (math.e ** dotproduct(x, theta)) / (1 + math.e ** dotproduct(x, theta))
+    sum = 0
+    for b in classes:
+        sum += math.e ** dotProduct(data, theta[b])
 
-def dotproduct(A, B):
+    classProb = []
+    for b in classes:
+        classProb.append((b, (math.e ** dotProduct(data, theta[b])) / sum))
+    return classProb
+
+
+def train():
+    attributes, dataClass = getData("simpleData.csv", ',')
+
+    learningRate = 0.000005
+    classes = list(set(dataClass))  # list of classes, must be 0, 1, 2 ... k
+
+    numAttributes = len(attributes[0]) # num of attributes per datapoint i.e. M
+    numClasses = len(classes)
+    theta = build2dList(numAttributes, numClasses)  # list of k M-dimensional vectors
+
+    bestTheta = []
+    minLoss = 99999999999
+
+    for i in range(numClasses):
+        for j in range(numAttributes):
+            theta[i][j] += float(random.randint(0,1000))/1000
+
+    for n in range(100):
+        print("Iteration:", n)
+
+        loss = 0.0
+        dLoss = build2dList(numAttributes, numClasses)
+        for i in range(len(attributes)): # for every datapoint in attributes
+
+            logSumExpValues = []
+            for a in classes:
+                logSumExpValues.append(dotProduct(attributes[i], theta[a]))
+
+            dp = dotProduct(attributes[i], theta[dataClass[i]])
+            lsv = logSumExp(logSumExpValues)
+
+            loss +=  dp - lsv
+
+            for a in classes:
+                for k in range(numAttributes):
+
+                    indicator = 0
+                    if a == dataClass[i]:
+                        indicator = 1
+
+                    sum = 0
+                    for b in classes:
+                        sum += numpy.power(math.e, dotProduct(attributes[i], theta[b]))
+                    probClassGivenModel = numpy.power(math.e, dotProduct(attributes[i], theta[dataClass[i]])) / (sum)
+
+                    dLoss[a][k] += attributes[i][k] * (indicator - probClassGivenModel)
+
+        for a in classes:
+            for i in range(numAttributes):
+                theta[a][i] += learningRate * dLoss[a][i]
+
+        if math.fabs(loss) < minLoss:
+            bestTheta = copy.deepcopy(theta)
+            minLoss = math.fabs(loss)
+            print("NEW BEST THETA", bestTheta)
+
+    return bestTheta
+
+
+def dotProduct(A, B):
     sum = 0
     for i in range(len(A)):
-        print(A[i])
-        print(B[i])
         sum += A[i] * B[i]
     return sum
+
 
 def getData(filename, separator):
     '''
@@ -51,23 +121,18 @@ def getData(filename, separator):
         for j in range(len(d)):
             d[j] = float(d[j])
         attributes[i] = d
-        dataClass[i] = float(dataClass[i])
+        dataClass[i] = int(dataClass[i])
 
     return attributes, dataClass
 
 
-def setupTheta(classData):
-    global theta
-    global numAttributes
-    global numClasses
+def logSumExp(values):
+    sum = 0.0
+    for i in values:
+        sum += numpy.power(math.e, i)
+    return numpy.log(sum)
 
-    numAttributes = len(attributes[0]) + 1
-    numClasses = len(set(classData))
-
-    theta = [[0] * (numAttributes + 1)] * numClasses
-
-def learn(trainingData):
-    pass
+#print(train())
 
 
 def plotData(attributes, dataClass):
@@ -77,22 +142,12 @@ def plotData(attributes, dataClass):
         else:
             plt.plot(attributes[i][0], attributes[i][1], 'b+')
 
-    p = numpy.linspace(0, 100)
-
-    #pheta = [200, -1.8, 1.5]
-    y = []
-    for i in range(len(p)):
-        y.append((theta[1] * p[i] + theta[0]) / theta[2])
-
-    plt.plot(p, y)
-
-
     plt.show()
 
 
+#[[10.379879254987287, 0.558891480372253], [4.873879254987285, 5.573891480372253]]
 
-attributes, dataClass = getData("data2class.csv", ',')
-setupTheta(dataClass)
-print(theta)
+a, c = getData("simpleData.csv", ',')
+print(classify([0,1], [[0.5192223006740697, 0.6349233839829894], [0.3450323006740697, 0.6919683839829895]], [20,20]))
+plotData(a,c)
 
-plotData(attributes, dataClass)
