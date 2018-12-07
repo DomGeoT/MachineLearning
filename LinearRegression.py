@@ -1,33 +1,25 @@
 import numpy
 import matplotlib.pyplot as plt
-import math
+import random
+import copy
 
-global coefficients
-global learningRate
-X = [lambda x : 1, lambda x : x]
-coefficients =  [0] * len(X)
-learningRate = 0.0005
+X = [lambda x : 1, lambda x : x, lambda x : x ** 2]
 
-
-def f(variable):
-    print("var")
-    print(variable)
-    global coefficients
+def f(variable, coefficients):
     sum = 0
     for i in range(0, len(X)):
         sum += X[i](variable) * coefficients[i]
     return sum
 
 
-def nextCoefficients():
-    global coefficients
-    global learningRate
+def nextCoefficients(data, coefficients):
+    learningRate = 0.0005
 
     for i in range(0, len(coefficients)):
         gradient = 0
         for j in range(0, len(data[0])):
-            gradient += (data[1][j] - f(data[0][j]))
-        gradient = gradient * -2 * data[0][i]
+            gradient += (data[1][j] - f(data[0][j], coefficients))
+        gradient = gradient * -1 * data[0][i]
         coefficients[i] = coefficients[i] - learningRate * gradient
 
 
@@ -56,38 +48,65 @@ def getData(filename, separator):
     return predictors, outcome
 
 
-def squaredLoss(data):
-    global coefficients
+def squaredLoss(data, coefficients):
     loss = 0
     for i in range(0, len(data[0])):
-        loss += math.fabs(data[1][i] - f(data[0][i]))
+        loss += numpy.float_power(data[1][i] - f(data[0][i], coefficients), 2)
     return loss
 
 
-def plotData(x, y):
+def plotData(x, y, coefficients):
     plt.plot(x, y, 'ro')
 
     p = numpy.linspace(-50, 50, 1000)
 
-    plt.plot(p, f(p))
+    plt.plot(p, f(p, coefficients))
     plt.show()
 
-data = getData('lineData.csv', ',')
-count = 1
 
-prevLoss = 1000000000000
+def randomizeCoefficients(length, deviation, centre = 0):
+    coefficients = [0] * length
 
-while True:
-    #print(squaredLoss(data))
-    nextCoefficients()
+    for i in range(len(coefficients)):
+        coefficients[i] = centre + random.randint(-deviation, deviation)
 
-    if (prevLoss - squaredLoss(data))**2 < 0.00000001:
-        break
-    prevLoss = squaredLoss(data)
+    return coefficients
 
-    #print(count)
-    count += 1
 
-print(squaredLoss(data))
-print(coefficients)
-plotData(data[0], data[1])
+def runLinReg(data, coefficients):
+    print()
+    print("inital coefficients", coefficients, "initial loss", squaredLoss(data, coefficients))
+    count = 1
+    prevLoss = 1000000000000
+
+    while True:
+        nextCoefficients(data, coefficients)
+
+        if numpy.power(prevLoss - squaredLoss(data, coefficients),2) < 0.0000001 or count > 5000:
+            prevLoss = squaredLoss(data, coefficients)
+            break
+        prevLoss = squaredLoss(data, coefficients)
+
+        count += 1
+
+
+    print("iterations performed", count, "loss", prevLoss, "coefficients", coefficients)
+
+    return prevLoss, coefficients
+
+
+fileData = getData('squareData.csv', ',')
+
+minLoss = 10000000
+bestCoefficients = randomizeCoefficients(len(X), 1)
+
+for i in range(10):
+    l, c = runLinReg(fileData, randomizeCoefficients(len(X), 2, 2))
+    if l < minLoss:
+        minLoss = l
+        bestCoefficients = copy.deepcopy(c)
+
+print()
+print("min loss", minLoss, "coefficients", bestCoefficients)
+
+plotData(fileData[0], fileData[1], bestCoefficients)

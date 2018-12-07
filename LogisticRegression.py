@@ -32,8 +32,8 @@ def classify(classes, theta, data):
     return classProb
 
 
-def train():
-    attributes, dataClass = getData("simpleData.csv", ',')
+def train(dataFileName):
+    attributes, dataClass = getData(dataFileName, ',')
 
     learningRate = 0.000005
     classes = list(set(dataClass))  # list of classes, must be 0, 1, 2 ... k
@@ -88,7 +88,7 @@ def train():
             minLoss = math.fabs(loss)
             print("NEW BEST THETA", bestTheta)
 
-    return bestTheta
+    return bestTheta, classes
 
 
 def dotProduct(A, B):
@@ -105,7 +105,7 @@ def getData(filename, separator):
 
     :return:
     '''
-    dataFile = open(filename, 'r')
+    dataFile = open(filename + ".csv", 'r')
     attributes = []
     dataClass = []
 
@@ -145,9 +145,77 @@ def plotData(attributes, dataClass):
     plt.show()
 
 
-#[[10.379879254987287, 0.558891480372253], [4.873879254987285, 5.573891480372253]]
+def choiceTrain():
+    # get data file name
+    dataFileName = input("Name of datafile, must be CSV? ")
+    theta, classes = train(dataFileName)
+    thetaFileName = input("Name if file to store theta values in?")
+    with open("logRegThetaVals/" + thetaFileName + ".txt", "w+") as f:
+        for c in classes:
+            f.write(str(c) + ",")
+        f.write("\n")
+        for set in theta:
+            print(set)
+            for element in set:
+                f.write(str(element) + ",")
+            f.write("\n")
 
-a, c = getData("simpleData.csv", ',')
-print(classify([0,1], [[0.5192223006740697, 0.6349233839829894], [0.3450323006740697, 0.6919683839829895]], [20,20]))
-plotData(a,c)
 
+def choiceClassify():
+    thetaFilename = "logRegThetaVals/" + input("Name of theta values file? ") + ".txt"
+    thetaValues = []
+
+    print("Enter the data you would like to classify in the form: 12.7857,2453.65,6855.1")
+    print("i.e. float + ',' + float + ',' + float...")
+
+    dataToClassify = input("Enter data: ").strip().split(",")
+
+    with open(thetaFilename, "r") as f:
+
+        data = f.read().split("\n")
+
+        classes = data[0].strip()[:-1].split(",")
+        for line in data[1:]:
+            if len(line.strip()) == 0:
+                continue
+            thetaValues.append((line.strip()[:-1]).split(","))
+
+        for i in range(len(classes)):
+            classes[i] = int(classes[i])
+
+        for i in range(len(thetaValues)):
+            for j in range(len(thetaValues[i])):
+                thetaValues[i][j] = float(thetaValues[i][j])
+
+
+        for i in range(len(dataToClassify)):
+            dataToClassify[i] = float(dataToClassify[i])
+
+    print(classes)
+    print(thetaValues)
+    print(dataToClassify)
+
+    print(classify(classes, thetaValues, dataToClassify))
+
+
+def menu():
+    while True:
+        print()
+        print("What to do:" )
+        print(" - 1: Train on data set?")
+        print(" - 2: Classify")
+        print(" - 3: Quit")
+        choice = input("Enter number of what to do? ")
+        if choice == "1":
+            # train
+            choiceTrain()
+        elif choice == "2":
+            # classify
+            choiceClassify()
+        elif choice == "3":
+            exit()
+        else:
+            print("No option selected - try again")
+
+
+menu()
