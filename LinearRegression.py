@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import random
 import copy
 
-X = [lambda x : 1, lambda x : x, lambda x : x ** 2]
+X = [lambda x : 1, lambda x : x ** 3 ]
 
 def f(variable, coefficients):
     sum = 0
@@ -12,16 +12,25 @@ def f(variable, coefficients):
     return sum
 
 
-def nextCoefficients(data, coefficients):
+def nextCoefficients(data, coefficients, lossFunc, lam):
     learningRate = 0.0005
 
     for i in range(0, len(coefficients)):
         gradient = 0
         for j in range(0, len(data[0])):
-            gradient += (data[1][j] - f(data[0][j], coefficients))
+            gradient += lossFunc(data[1][j] - f(data[0][j], coefficients), coefficients, lam)
         gradient = gradient * -1 * data[0][i]
         coefficients[i] = coefficients[i] - learningRate * gradient
 
+def stndLoss(lossTerm, *args):
+    return lossTerm
+
+def lassoLoss(lossTerm, coefficients, lam):
+    return lam * lossTerm + (1 - lam) * sum(coefficients)
+
+
+def ridgeLoss(lossTerm, coefficients, lam):
+    return lam * lossTerm + (1 - lam) * sum(list(numpy.power(coefficients, 2)))
 
 def getData(filename, separator):
     '''
@@ -54,7 +63,6 @@ def squaredLoss(data, coefficients):
         loss += numpy.float_power(data[1][i] - f(data[0][i], coefficients), 2)
     return loss
 
-
 def plotData(x, y, coefficients):
     plt.plot(x, y, 'ro')
 
@@ -68,19 +76,19 @@ def randomizeCoefficients(length, deviation, centre = 0):
     coefficients = [0] * length
 
     for i in range(len(coefficients)):
-        coefficients[i] = centre + random.randint(-deviation, deviation)
+        coefficients[i] = centre + random.randint(-deviation * 100, deviation * 100)/100
 
     return coefficients
 
 
-def runLinReg(data, coefficients):
+def runLinReg(data, coefficients, lossFunc=stndLoss, lam=0.5):
     print()
-    print("inital coefficients", coefficients, "initial loss", squaredLoss(data, coefficients))
+    print("initial coefficients", coefficients, "initial loss", squaredLoss(data, coefficients))
     count = 1
     prevLoss = 1000000000000
 
     while True:
-        nextCoefficients(data, coefficients)
+        nextCoefficients(data, coefficients, lossFunc, lam)
 
         if numpy.power(prevLoss - squaredLoss(data, coefficients),2) < 0.0000001 or count > 5000:
             prevLoss = squaredLoss(data, coefficients)
@@ -101,7 +109,7 @@ minLoss = 10000000
 bestCoefficients = randomizeCoefficients(len(X), 1)
 
 for i in range(10):
-    l, c = runLinReg(fileData, randomizeCoefficients(len(X), 2, 2))
+    l, c = runLinReg(fileData, randomizeCoefficients(len(X), 2, 2), lassoLoss, 0.5)
     if l < minLoss:
         minLoss = l
         bestCoefficients = copy.deepcopy(c)
